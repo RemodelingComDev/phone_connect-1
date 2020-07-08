@@ -1,6 +1,6 @@
  module PhoneConnect
    class RealPhoneValidation
-     BASE_URI = 'https://api.realvalidation.com/rpvWebService/RealPhoneValidationTurbo.php?token='
+     BASE_URI = 'https://api.realvalidation.com/rpvWebService'
      ATTRIBUTES_LIST = ['response', 'status', 'error_text', 'iscell', 'cnam', 'carrier']
      attr_accessor :phone_number
 
@@ -11,6 +11,11 @@
 
     def hashed_response
       @phone_data, @execution_time = phone_response
+      @phone_data
+    end
+
+    def hashed_dnc_response
+      @phone_data = phone_dnc_response
       @phone_data
     end
 
@@ -35,7 +40,7 @@
         retries = 3
          begin
            Timeout.timeout(timeout_period) do
-             url = "#{BASE_URI}#{token}&phone=#{@phone_number}"
+             url = "#{BASE_URI}/RealPhoneValidationTurbo.php?token=#{token}&phone=#{@phone_number}"
 
              start_time = Time.now
              response = HTTParty.get(url, verify: false)
@@ -53,6 +58,20 @@
            retry
          rescue Exception => exception
            return [{'status' => 'ERROR', 'error_text' => exception.to_s}, -1]
+         end
+      end
+
+      def phone_dnc_response
+        token = PhoneConnect.configuration.token
+         begin
+            url = "#{BASE_URI}/DNCLookup.php?token=#{token}&phone=#{@phone_number}"
+            response = HTTParty.get(url, verify: false)
+            data = response.parsed_response['response']
+
+             # return Hashed response
+             return data
+         rescue Exception => exception
+           return {'RESPONSECODE' => 'ERROR', 'error_text' => exception.to_s}
          end
       end
    end
